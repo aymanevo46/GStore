@@ -105,7 +105,7 @@ export default function AdminDashboard() {
         <div className="p-6 border-b border-white/5 flex items-center justify-between bg-[#0a0a0a]">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
-            نواقص المخزن (مطلوب شراءها)
+            نواقص المخزن
           </h2>
           <span className="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-xs font-bold">
             {lowStockProducts.length} منتجات
