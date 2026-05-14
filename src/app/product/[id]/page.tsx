@@ -24,8 +24,8 @@ const translations = {
     flavor: "النكهة:",
     category: "القسم:",
     currency: "ج.م",
-    guarantee: "ضمان استرجاع خلال 14 يوم",
-    shipping: "توصيل سريع لكل المحافظات"
+    guarantee: "ضمان استرجاع خلال 1 يوم",
+    shipping: "توصيل سريع"
   },
   en: {
     back: "Back to Store",
@@ -41,8 +41,8 @@ const translations = {
     flavor: "Flavor:",
     category: "Category:",
     currency: "EGP",
-    guarantee: "14-Day Money-Back Guarantee",
-    shipping: "Fast shipping nationwide"
+    guarantee: "1-Day Money-Back Guarantee",
+    shipping: "Fast shipping"
   },
   ru: {
     back: "В магазин",
@@ -58,7 +58,7 @@ const translations = {
     flavor: "Вкус:",
     category: "Категория:",
     currency: "EGP",
-    guarantee: "Гарантия возврата 14 дней",
+    guarantee: "Гарантия возврата 1 день",
     shipping: "Быстрая доставка"
   }
 };
