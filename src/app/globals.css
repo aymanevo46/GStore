@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --yellow: #E8FF00;
+  --black: #050505;
+  --card: #0a0a0a;
+  --surface: #161616;
+}
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background-color: var(--black);
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* إخفاء شريط التمرير للأقسام */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* سكرول بار الصفحة الرئيسي */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--yellow); }
