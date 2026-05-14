@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Truck, MapPin, MessageCircle, Wallet, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Filter } from "lucide-react";
+import { Truck, MapPin, MessageCircle, Wallet, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Filter, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// 1. واجهة الطلب (TypeScript)
+// 1. واجهة الطلب (TypeScript) معدلة لتشمل المنتجات
+interface OrderItem {
+  quantity: number;
+  price_at_time: number;
+  products?: {
+    name_ar: string;
+  };
+}
+
 interface Order {
   id: string;
   customer_name: string;
@@ -18,6 +26,7 @@ interface Order {
   instapay_receipt: string | null;
   status: string;
   created_at: string;
+  order_items?: OrderItem[]; // المنتجات المرتبطة بالطلب
 }
 
 const ITEMS_PER_PAGE = 10; // عدد الطلبات في الصفحة الواحدة
@@ -48,12 +57,21 @@ export default function AdminOrders() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // 2. دالة جلب الطلبات (بالصفحات والفلترة)
+  // 2. دالة جلب الطلبات (بالصفحات والفلترة والمنتجات المرتبطة)
   const fetchOrders = async () => {
     setIsLoading(true);
 
-    // بناء الاستعلام (Query)
-    let query = supabase.from("orders").select("*", { count: "exact" });
+    // بناء الاستعلام (Query) ودمج جدول المنتجات
+    let query = supabase.from("orders").select(`
+      *,
+      order_items (
+        quantity,
+        price_at_time,
+        products (
+          name_ar
+        )
+      )
+    `, { count: "exact" });
 
     // تطبيق الفلتر لو الموظف اختار حالة معينة
     if (activeFilter !== 'all') {
@@ -69,7 +87,7 @@ export default function AdminOrders() {
     const { data, count, error } = await query;
 
     if (!error && data) {
-      setOrders(data as Order[]);
+      setOrders(data as unknown as Order[]);
       if (count !== null) {
         setTotalCount(count);
         setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
@@ -103,14 +121,21 @@ export default function AdminOrders() {
     }
   };
 
-  // 4. دالة الواتساب الذكية
+  // 4. دالة الواتساب الذكية (مضاف إليها تفاصيل الطلب)
   const openWhatsApp = (order: Order) => {
     let phone = order.customer_phone;
     if (phone.startsWith("0")) phone = "20" + phone.substring(1);
 
     let message = `أهلاً يا كابتن ${order.customer_name}، معاكم متجر GSTORE 💪\n`;
-    message += `طلبك بقيمة ${order.total_amount} ج.م وصلنا بنجاح.\n`;
+    message += `طلبك بقيمة ${order.total_amount} ج.م وصلنا بنجاح.\n\n`;
     
+    message += `*تفاصيل الطلب:*\n`;
+    if (order.order_items && order.order_items.length > 0) {
+      order.order_items.forEach((item) => {
+        message += `- ${item.quantity}x ${item.products?.name_ar || "منتج"}\n`;
+      });
+    }
+
     if (order.payment_method === "instapay") {
       message += `\nعشان نأكد الطلب ونشحنه، برجاء إرسال سكرين شوت لإيصال تحويل إنستاباي 💜`;
     } else if (order.delivery_type === "gym_pickup") {
@@ -176,6 +201,7 @@ export default function AdminOrders() {
               <thead className="bg-[#0a0a0a] border-b border-white/5">
                 <tr>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">العميل والتاريخ</th>
+                  <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">المنتجات المطلوبة</th>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">طريقة التسليم</th>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">الدفع</th>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">الإجمالي</th>
@@ -189,19 +215,37 @@ export default function AdminOrders() {
                   
                   return (
                     <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-5">
+                      {/* العميل */}
+                      <td className="p-5 align-top">
                         <p className="font-bold text-white text-base truncate max-w-[150px]" title={order.customer_name}>{order.customer_name}</p>
                         <p className="text-xs text-gray-500 mt-1 font-mono">{order.customer_phone}</p>
                         <p className="text-[10px] text-gray-600 mt-1">{date}</p>
                       </td>
 
-                      <td className="p-5">
+                      {/* المنتجات المطلوبة */}
+                      <td className="p-5 align-top">
+                        <div className="flex flex-col gap-2 max-h-32 overflow-y-auto hide-scrollbar pr-2 min-w-[200px]">
+                          {order.order_items?.map((item, idx) => (
+                            <div key={idx} className="flex items-start gap-2 bg-[#050505] p-2 rounded-lg border border-white/5">
+                              <span className="bg-[#E8FF00] text-black text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 mt-0.5">
+                                {item.quantity}x
+                              </span>
+                              <span className="text-xs text-gray-300 font-bold line-clamp-2">
+                                {item.products?.name_ar || "منتج غير متوفر"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* التسليم */}
+                      <td className="p-5 align-top">
                         {order.delivery_type === "home_delivery" ? (
                           <div className="flex flex-col gap-1.5">
                             <span className="inline-flex items-center gap-1.5 text-blue-400 bg-blue-400/10 border border-blue-400/20 px-2.5 py-1 rounded-md text-xs font-bold w-fit">
                               <Truck className="w-3 h-3" /> شحن
                             </span>
-                            <span className="text-[11px] text-gray-500 max-w-[160px] truncate" title={order.customer_address}>
+                            <span className="text-[11px] text-gray-500 max-w-[160px] whitespace-normal" title={order.customer_address}>
                               {order.customer_address}
                             </span>
                           </div>
@@ -212,7 +256,8 @@ export default function AdminOrders() {
                         )}
                       </td>
 
-                      <td className="p-5">
+                      {/* الدفع */}
+                      <td className="p-5 align-top">
                         {order.payment_method === "instapay" ? (
                           <div className="flex flex-col gap-1.5">
                             <span className="inline-flex items-center gap-1.5 text-purple-400 bg-purple-400/10 border border-purple-400/20 px-2.5 py-1 rounded-md text-xs font-bold w-fit">
@@ -229,16 +274,18 @@ export default function AdminOrders() {
                         )}
                       </td>
 
-                      <td className="p-5">
+                      {/* الإجمالي */}
+                      <td className="p-5 align-top">
                         <p className="font-black text-[#E8FF00] text-lg leading-none">{order.total_amount}</p>
                         <p className="text-[10px] text-gray-500 mt-1">ج.م</p>
                       </td>
 
-                      <td className="p-5">
+                      {/* الحالة */}
+                      <td className="p-5 align-top">
                         <select
                           value={order.status}
                           onChange={(e) => updateStatus(order.id, e.target.value)}
-                          className={`bg-[#050505] border rounded-lg px-3 py-2 text-xs font-bold outline-none cursor-pointer transition-colors ${
+                          className={`bg-[#050505] border rounded-lg px-3 py-2 text-xs font-bold outline-none cursor-pointer transition-colors w-[140px] ${
                             order.status === 'pending' ? 'text-yellow-500 border-yellow-500/30 focus:border-yellow-500' :
                             order.status === 'confirmed' ? 'text-blue-500 border-blue-500/30 focus:border-blue-500' :
                             order.status === 'ready_for_pickup' ? 'text-orange-500 border-orange-500/30 focus:border-orange-500' :
@@ -256,7 +303,8 @@ export default function AdminOrders() {
                         </select>
                       </td>
 
-                      <td className="p-5 text-center">
+                      {/* التواصل */}
+                      <td className="p-5 align-top text-center">
                         <button
                           onClick={() => openWhatsApp(order)}
                           className="inline-flex items-center justify-center w-10 h-10 bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-black border border-[#25D366]/30 rounded-xl transition-all shadow-[0_0_10px_rgba(37,211,102,0.1)] hover:shadow-[0_0_15px_rgba(37,211,102,0.4)]"
@@ -274,7 +322,7 @@ export default function AdminOrders() {
           </div>
         )}
 
-        {/* 5. شريط الـ Pagination */}
+        {/* شريط الـ Pagination */}
         {!isLoading && totalPages > 1 && (
           <div className="p-4 border-t border-white/5 bg-[#0a0a0a] flex items-center justify-between">
             <button 

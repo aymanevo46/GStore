@@ -354,7 +354,7 @@ function CheckoutContent() {
                      <p className="text-sm text-purple-300 font-bold m-0">{t.instapayInstruction}</p>
                   </div>
                   <div className="bg-black/50 border border-purple-500/20 rounded-xl p-4 mb-5 text-center">
-                     <p className="text-2xl font-black text-white tracking-[0.2em]">0 10 13216092</p>
+                     <p className="text-2xl font-black text-white tracking-[0.2em]">01013216092</p>
                   </div>
                   <label className="block text-xs font-bold text-gray-400 mb-2">{t.refNumber}</label>
                   <input required suppressHydrationWarning type="text" dir="ltr" value={instapayRef} onChange={(e) => setInstapayRef(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-purple-500 focus:bg-white/5 transition-all text-start" placeholder={t.refPlaceholder} />

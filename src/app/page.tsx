@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import {
   Search, ShoppingBag, Heart, ShoppingCart, Zap,
   ChevronRight, ChevronLeft, Globe, X, Plus, Minus,
-  Trash2, Rocket, ShieldCheck, CreditCard, RefreshCcw
+  Trash2, ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useCartStore } from "../lib/cartStore";
@@ -70,7 +70,7 @@ const translations = {
       { title: "Fast Delivery", sub: "Within 24-48 hrs" },
       { title: "100% Authentic", sub: "Certified Products" },
       { title: "Secure Payment", sub: "Cash or Online" },
-      { title: "Free Returns", sub: "Within 1 day" },
+      { title: "Free Returns", sub: "Within 1 day " },
     ],
     featureIcons: ["🚀", "🛡️", "💳", "🔄"],
     categories: ["All", "Protein", "Creatine", "Energy", "Clothes"],
@@ -138,7 +138,6 @@ export default function Home({
 
   const { items, addItem, removeItem, updateQuantity, getTotal } = useCartStore();
 
-  // الحل السحري لتجنب خطأ Hydration مع السلة
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -181,7 +180,7 @@ export default function Home({
       />
 
       {/* ════════════════════════════════════════
-          CART SIDEBAR (محسنة للموبايل)
+          CART SIDEBAR
       ════════════════════════════════════════ */}
       {isCartOpen && (
         <div
@@ -218,7 +217,7 @@ export default function Home({
         <div className="flex-1 overflow-y-auto p-5 space-y-3 hide-scrollbar">
           {!isMounted ? (
              <div className="flex flex-col items-center justify-center h-full text-[#444] gap-4 mt-16">
-               <RefreshCcw className="w-8 h-8 animate-spin opacity-20" />
+               <div className="w-8 h-8 animate-spin opacity-20 rounded-full border-4 border-t-[#E8FF00] border-gray-600"></div>
              </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-[#444] gap-4 mt-16">
@@ -295,7 +294,7 @@ export default function Home({
       </aside>
 
       {/* ════════════════════════════════════════
-          NAVBAR (متجاوب مع الموبايل)
+          NAVBAR
       ════════════════════════════════════════ */}
       <nav className="sticky top-0 z-50 border-b border-[#ffffff08] bg-[#050505]/90 backdrop-blur-md">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between">
@@ -453,29 +452,34 @@ export default function Home({
                   key={product.id}
                   className="bg-[#0a0a0a] border border-white/5 hover:border-[#E8FF00]/30 hover:-translate-y-1 rounded-[22px] p-3 flex flex-col transition-all duration-300 group"
                 >
+                  {/* حاوية الصورة أصبحت قابلة للضغط كـ Link */}
                   <div className="bg-[#161616] rounded-2xl h-[180px] sm:h-[200px] flex items-center justify-center relative overflow-hidden mb-3">
+                    {/* زرار المفضلة - منفصل عن الـ Link */}
                     <button
-                      className="absolute top-2.5 w-8 h-8 rounded-full flex items-center justify-center bg-black/50 border border-white/5 text-white hover:text-red-500 transition-colors z-10"
+                      className="absolute top-2.5 w-8 h-8 rounded-full flex items-center justify-center bg-black/50 border border-white/5 text-white hover:text-red-500 transition-colors z-20"
                       style={{ [isRTL ? "right" : "left"]: "10px" }}
                     >
                       <Heart className="w-4 h-4" />
                     </button>
 
                     <span
-                      className="absolute top-2.5 bg-black/50 border border-white/5 text-[#aaa] text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full z-10"
+                      className="absolute top-2.5 bg-black/50 border border-white/5 text-[#aaa] text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full z-20"
                       style={{ [isRTL ? "left" : "right"]: "10px" }}
                     >
                       {product.category}
                     </span>
 
-                    <img
-                      src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.png"}
-                      alt={productName}
-                      className="w-full h-full object-contain p-4 sm:p-5 transition-transform duration-500 group-hover:scale-110"
-                    />
+                    {/* صورة المنتج مربوطة بصفحة التفاصيل */}
+                    <Link href={`/product/${product.id}?lang=${currentLang}`} className="absolute inset-0 z-10 flex items-center justify-center p-4 sm:p-5">
+                      <img
+                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.png"}
+                        alt={productName}
+                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </Link>
 
                     {isOOS && (
-                      <div className="absolute inset-0 flex items-center justify-center z-20 bg-black/75 backdrop-blur-[2px]">
+                      <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none bg-black/75 backdrop-blur-[2px]">
                         <span className="bg-red-600 border-2 border-red-900 font-black text-white text-[11px] sm:text-[13px] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl -rotate-12">
                           {t.outOfStock}
                         </span>
@@ -484,9 +488,13 @@ export default function Home({
                   </div>
 
                   <div className={`px-1.5 pb-1 flex-1 flex flex-col justify-between ${isRTL ? "text-right" : "text-left"}`}>
-                    <h3 className="font-bold text-[14px] sm:text-[15px] text-white mb-3 truncate" title={productName}>
-                      {productName}
-                    </h3>
+                    
+                    {/* اسم المنتج مربوط بصفحة التفاصيل */}
+                    <Link href={`/product/${product.id}?lang=${currentLang}`} className="mb-3">
+                      <h3 className="font-bold text-[14px] sm:text-[15px] text-white hover:text-[#E8FF00] truncate transition-colors" title={productName}>
+                        {productName}
+                      </h3>
+                    </Link>
 
                     <div className="flex items-end justify-between">
                       <div>
@@ -498,6 +506,7 @@ export default function Home({
                         </div>
                       </div>
 
+                      {/* زر الإضافة للسلة - مستقل */}
                       <button
                         onClick={() => addItem({
                           id: product.id,
@@ -507,8 +516,8 @@ export default function Home({
                           quantity: 1,
                           stock: product.stock_quantity,
                         })}
-                        disabled={isOOS || inCart}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${
+                        disabled={isOOS || inCart || !isMounted}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all relative z-20 ${
                           inCart 
                             ? "bg-green-600 border-green-600 text-white cursor-not-allowed" 
                             : isOOS 
@@ -528,23 +537,19 @@ export default function Home({
       </main>
 
       {/* ════════════════════════════════════════
-          FOOTER (متوافق مع الـ 3 لغات والموبايل)
+          FOOTER
       ════════════════════════════════════════ */}
       <footer className="mt-12 border-t border-white/5 bg-[#050505] relative overflow-hidden">
-        {/* إضاءة خفيفة في الخلفية */}
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[500px] h-[50px] bg-[#E8FF00] blur-[80px] opacity-[0.03] pointer-events-none"></div>
 
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
           
-          {/* حقوق المتجر */}
           <div className="text-[#555] text-xs sm:text-sm font-bold order-2 md:order-1 text-center">
             © {new Date().getFullYear()} {t.storeName} — {t.footerRights}
           </div>
 
-          {/* كبسولة شركة البرمجيات */}
           <div className="flex items-center bg-[#161616] border border-white/5 rounded-full p-1.5 shadow-lg hover:border-white/10 transition-colors order-1 md:order-2 w-full sm:w-auto justify-center">
             
-            {/* رابط الواتساب */}
             <a 
               href="https://wa.me/201117013603" 
               target="_blank" 
@@ -560,10 +565,8 @@ export default function Home({
               </span>
             </a>
 
-            {/* خط فاصل */}
             <div className="w-px h-5 bg-white/10 mx-1 sm:mx-2"></div>
 
-            {/* اسم الشركة واللوجو (صورة) */}
             <div className="flex items-center gap-2 sm:gap-2.5 px-1 sm:px-2">
               <p className="text-white font-black tracking-widest text-[9px] sm:text-[10px] uppercase m-0 leading-none mt-0.5">
                 {t.by} <span className="text-[#E8FF00]">ELFIQEY</span>
