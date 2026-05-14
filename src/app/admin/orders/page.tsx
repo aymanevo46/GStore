@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Truck, MapPin, MessageCircle, Wallet, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Filter, Package } from "lucide-react";
+import { Truck, MapPin, MessageCircle, Wallet, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Filter, Package, Trash2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// 1. واجهة الطلب (TypeScript) معدلة لتشمل المنتجات
 interface OrderItem {
   quantity: number;
   price_at_time: number;
@@ -26,30 +25,29 @@ interface Order {
   instapay_receipt: string | null;
   status: string;
   created_at: string;
-  order_items?: OrderItem[]; // المنتجات المرتبطة بالطلب
+  order_items?: OrderItem[]; 
 }
 
-const ITEMS_PER_PAGE = 10; // عدد الطلبات في الصفحة الواحدة
+const ITEMS_PER_PAGE = 10; 
 
-// قائمة الفلاتر لتسهيل البحث
+// 1. إضافة فلتر الطلبات الملغية للقائمة
 const STATUS_FILTERS = [
   { id: 'all', label: 'جميع الطلبات' },
   { id: 'pending', label: 'قيد المراجعة' },
   { id: 'confirmed', label: 'تم التأكيد' },
   { id: 'out_for_delivery', label: 'جاري التوصيل' },
+  { id: 'cancelled', label: 'طلبات ملغية 🗑️' },
 ];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // حالات الـ Pagination والفلترة
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState('all');
 
-  // حالة الإشعارات
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -57,11 +55,9 @@ export default function AdminOrders() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // 2. دالة جلب الطلبات (بالصفحات والفلترة والمنتجات المرتبطة)
   const fetchOrders = async () => {
     setIsLoading(true);
 
-    // بناء الاستعلام (Query) ودمج جدول المنتجات
     let query = supabase.from("orders").select(`
       *,
       order_items (
@@ -73,12 +69,10 @@ export default function AdminOrders() {
       )
     `, { count: "exact" });
 
-    // تطبيق الفلتر لو الموظف اختار حالة معينة
     if (activeFilter !== 'all') {
       query = query.eq('status', activeFilter);
     }
 
-    // ترتيب وتطبيق الـ Pagination
     const from = (currentPage - 1) * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE - 1;
 
@@ -99,29 +93,37 @@ export default function AdminOrders() {
     setIsLoading(false);
   };
 
-  // إعادة جلب البيانات عند تغيير الصفحة أو الفلتر
   useEffect(() => {
     fetchOrders();
   }, [currentPage, activeFilter]);
 
-  // تغيير الحالة والعودة للصفحة الأولى
   const handleFilterChange = (filterId: string) => {
     setActiveFilter(filterId);
-    setCurrentPage(1); // لما نغير الفلتر نرجع لأول صفحة
+    setCurrentPage(1); 
   };
 
-  // 3. تحديث حالة الطلب
   const updateStatus = async (orderId: string, newStatus: string) => {
     const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
     if (!error) {
-      setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
-      showToast("تم تحديث حالة الطلب بنجاح");
+      // لو الفلتر الحالي مش "الكل"، هنشيل الطلب من الشاشة عشان راح قسم تاني
+      if (activeFilter !== 'all' && activeFilter !== newStatus) {
+         setOrders(orders.filter(order => order.id !== orderId));
+      } else {
+         setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+      }
+      showToast(newStatus === 'cancelled' ? "تم نقل الطلب للملغية" : "تم تحديث حالة الطلب بنجاح");
     } else {
-      showToast("حدث خطأ أثناء تحديث الحالة", "error");
+      showToast("حدث خطأ أثناء التحديث", "error");
     }
   };
 
-  // 4. دالة الواتساب الذكية (مضاف إليها تفاصيل الطلب)
+  // 2. دالة حذف (إلغاء) الطلب الجديدة
+  const handleCancelOrder = async (orderId: string) => {
+    if (confirm("هل أنت متأكد أنك تريد حذف/إلغاء هذا الطلب؟ سيتم نقله لخانة الطلبات الملغية.")) {
+      await updateStatus(orderId, 'cancelled');
+    }
+  };
+
   const openWhatsApp = (order: Order) => {
     let phone = order.customer_phone;
     if (phone.startsWith("0")) phone = "20" + phone.substring(1);
@@ -163,7 +165,7 @@ export default function AdminOrders() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-white">إدارة الطلبات</h1>
-          <p className="text-gray-500 mt-2 font-bold">إجمالي الطلبات: <span className="text-[#E8FF00]">{totalCount}</span> طلب</p>
+          <p className="text-gray-500 mt-2 font-bold">العدد: <span className="text-[#E8FF00]">{totalCount}</span> طلب للقسم المحدد</p>
         </div>
 
         {/* فلاتر الحالات (Tabs) */}
@@ -206,7 +208,7 @@ export default function AdminOrders() {
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">الدفع</th>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">الإجمالي</th>
                   <th className="p-5 text-sm text-gray-400 font-bold whitespace-nowrap">حالة الطلب</th>
-                  <th className="p-5 text-sm text-gray-400 font-bold text-center whitespace-nowrap">تواصل</th>
+                  <th className="p-5 text-sm text-gray-400 font-bold text-center whitespace-nowrap">إجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -214,10 +216,10 @@ export default function AdminOrders() {
                   const date = new Date(order.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                   
                   return (
-                    <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                    <tr key={order.id} className={`transition-colors ${order.status === 'cancelled' ? 'bg-red-500/5 hover:bg-red-500/10 opacity-70' : 'hover:bg-white/5'}`}>
                       {/* العميل */}
                       <td className="p-5 align-top">
-                        <p className="font-bold text-white text-base truncate max-w-[150px]" title={order.customer_name}>{order.customer_name}</p>
+                        <p className={`font-bold text-base truncate max-w-[150px] ${order.status === 'cancelled' ? 'text-red-400 line-through' : 'text-white'}`} title={order.customer_name}>{order.customer_name}</p>
                         <p className="text-xs text-gray-500 mt-1 font-mono">{order.customer_phone}</p>
                         <p className="text-[10px] text-gray-600 mt-1">{date}</p>
                       </td>
@@ -303,15 +305,28 @@ export default function AdminOrders() {
                         </select>
                       </td>
 
-                      {/* التواصل */}
+                      {/* إجراءات (واتساب + حذف) */}
                       <td className="p-5 align-top text-center">
-                        <button
-                          onClick={() => openWhatsApp(order)}
-                          className="inline-flex items-center justify-center w-10 h-10 bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-black border border-[#25D366]/30 rounded-xl transition-all shadow-[0_0_10px_rgba(37,211,102,0.1)] hover:shadow-[0_0_15px_rgba(37,211,102,0.4)]"
-                          title="تواصل عبر واتساب"
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => openWhatsApp(order)}
+                            className="inline-flex items-center justify-center w-9 h-9 bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-black border border-[#25D366]/30 rounded-xl transition-all shadow-[0_0_10px_rgba(37,211,102,0.1)]"
+                            title="تواصل عبر واتساب"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                          
+                          {/* 3. زرار الحذف (الإلغاء) لا يظهر للطلبات الملغية بالفعل */}
+                          {order.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              className="inline-flex items-center justify-center w-9 h-9 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded-xl transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+                              title="حذف (إلغاء) الطلب"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                     </tr>
