@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { supabase } from "../../../../lib/supabase";
-import { useCartStore } from "../../../../lib/cartStore";
+import { supabase } from "../../../lib/supabase";
+import { useCartStore } from "../../../lib/cartStore";
 import { ChevronRight, ChevronLeft, ShoppingCart, Check, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
