@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useCartStore, CartItem } from "../../lib/cartStore";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -62,7 +62,7 @@ const translations = {
     phonePlaceholder: "01000000000",
     deliveryMethod: "Delivery Method",
     homeDelivery: "Home Delivery",
-    shippingFeeLabel: "Shipping fee",
+    shippingFeeLabel: "Shipping fee ",
     gymPickup: "Gym Pickup",
     freeShipping: "Free, no extra fees",
     fullAddress: "Full Address *",
@@ -104,7 +104,7 @@ const translations = {
     deliveryMethod: "Способ доставки",
     homeDelivery: "Доставка на дом",
     shippingFeeLabel: "Доставка",
-    gymPickup: "Самovывоз из зала",
+    gymPickup: "Самовывоз из зала",
     freeShipping: "Бесплатно",
     fullAddress: "Полный адрес *",
     addressPlaceholder: "Город, Район, Улица, Дом, Этаж...",
@@ -136,29 +136,26 @@ const translations = {
   }
 };
 
-export default function CheckoutPage() {
+// ==================== المكون الداخلي (يحتوي على اللوجيك والـ useSearchParams) ====================
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = (searchParams?.get("lang") as LangType) || "ar";
   const dir = lang === "ar" ? "rtl" : "ltr";
   const storeName = "GSTORE";
   
-  // استدعاء الترجمة المناسبة للغة
   const t = translations[lang] || translations.ar;
 
   const { items, getTotal, clearCart } = useCartStore();
   
-  // -- بيانات العميل --
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   
-  // -- خيارات التوصيل والدفع --
   const [deliveryType, setDeliveryType] = useState<"home_delivery" | "gym_pickup">("home_delivery");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "instapay">("cod");
   const [instapayRef, setInstapayRef] = useState("");
   
-  // -- حالات الصفحة --
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -171,7 +168,6 @@ export default function CheckoutPage() {
     }
   }, [items, router, isSuccess, lang]);
 
-  // دالة إرسال الطلب الآمنة (Transaction)
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -186,7 +182,6 @@ export default function CheckoutPage() {
       const { data, error } = await supabase.rpc('place_new_order', {
         p_customer_name: name,
         p_customer_phone: phone,
-        // حفظنا دي بالعربي في الداتا بيز عشان الإدمن يفهمها
         p_customer_address: deliveryType === "home_delivery" ? address : "استلام من الجيم",
         p_total_amount: finalTotal,
         p_delivery_type: deliveryType,
@@ -212,11 +207,9 @@ export default function CheckoutPage() {
     }
   };
 
-  // ==================== شاشة النجاح ====================
   if (isSuccess) {
     return (
-      <div dir={dir} className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-4 font-sans text-white relative overflow-hidden">
-        {/* تأثير الإضاءة */}
+      <div dir={dir} className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-4 font-sans text-white relative overflow-hidden w-full">
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#E8FF00] rounded-full blur-[150px] opacity-[0.05] pointer-events-none"></div>
 
         <div className="bg-[#0A0A0A] border border-white/5 p-8 md:p-12 rounded-[2.5rem] shadow-2xl max-w-lg w-full text-center relative z-10">
@@ -235,14 +228,10 @@ export default function CheckoutPage() {
     );
   }
 
-  // ==================== شاشة الدفع الرئيسية ====================
   return (
-    <div dir={dir} className="min-h-screen bg-[#020202] text-white font-sans flex flex-col relative">
-      
-      {/* إضاءة خلفية */}
+    <div dir={dir} className="min-h-screen bg-[#020202] text-white font-sans flex flex-col relative w-full">
       <div className="fixed top-0 start-0 w-[500px] h-[500px] bg-[#E8FF00]/[0.02] rounded-full blur-[120px] pointer-events-none z-0" />
 
-      {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-white/5 h-20 flex items-center">
         <div className="container max-w-[1200px] mx-auto px-4 md:px-6 flex items-center justify-between">
           <Link href={`/?lang=${lang}`} className="flex items-center gap-2 text-gray-400 hover:text-white font-bold transition-colors w-fit">
@@ -258,20 +247,14 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      {/* ── MAIN CONTENT ── */}
       <div className="container max-w-[1200px] mx-auto px-4 md:px-6 pt-10 pb-20 flex-1 relative z-10">
-        
         <div className="flex items-center gap-3 mb-10">
           <ShieldCheck className="w-8 h-8 text-[#E8FF00]" />
           <h1 className="text-3xl font-black text-white">{t.checkoutSecurely}</h1>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          
-          {/* ── FORM SECTION (Right side) ── */}
           <form onSubmit={handlePlaceOrder} className="w-full lg:w-2/3 space-y-6">
-            
-            {/* 1. بيانات التواصل */}
             <div className="bg-[#0A0A0A] p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 end-0 w-32 h-32 bg-[#E8FF00]/5 blur-3xl pointer-events-none rounded-full"></div>
               <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-3 relative z-10">
@@ -290,7 +273,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* 2. طريقة الاستلام */}
             <div className="bg-[#0A0A0A] p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-xl relative overflow-hidden">
               <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-3 relative z-10">
                 <span className="w-8 h-8 rounded-full bg-[#E8FF00]/10 border border-[#E8FF00]/20 flex items-center justify-center text-[#E8FF00] text-sm">2</span>
@@ -328,7 +310,6 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* 3. طريقة الدفع */}
             <div className="bg-[#0A0A0A] p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-xl relative overflow-hidden">
               <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-3 relative z-10">
                 <span className="w-8 h-8 rounded-full bg-[#E8FF00]/10 border border-[#E8FF00]/20 flex items-center justify-center text-[#E8FF00] text-sm">3</span>
@@ -373,13 +354,12 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Mobile Submit Button */}
             <button type="submit" disabled={isLoading} className="w-full lg:hidden bg-[#E8FF00] hover:bg-white text-black py-4 rounded-2xl font-black text-lg transition-colors shadow-[0_0_20px_rgba(232,255,0,0.2)] disabled:opacity-50 mt-8">
               {isLoading ? t.sendingOrder : t.submitOrder}
             </button>
           </form>
 
-          {/* ── ORDER SUMMARY (Left side / Sticky) ── */}
+          {/* ── ORDER SUMMARY ── */}
           <div className="w-full lg:w-1/3 bg-[#0A0A0A] p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-xl sticky top-28">
             <h2 className="text-xl font-bold mb-6 text-white border-b border-white/5 pb-4">{t.orderSummary}</h2>
             
@@ -422,7 +402,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ==================== الفوتر الكبسولة ==================== */}
+      {/* ── FOOTER ── */}
       <footer className="mt-auto border-t border-white/5 bg-[#050505] relative overflow-hidden">
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[500px] h-[50px] bg-[#E8FF00] blur-[80px] opacity-[0.03] pointer-events-none"></div>
 
@@ -469,7 +449,15 @@ export default function CheckoutPage() {
           </div>
         </div>
       </footer>
-
     </div>
+  );
+}
+
+// ==================== المكون الرئيسي المجمع ====================
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#020202] flex items-center justify-center text-[#E8FF00] font-bold">جاري التحميل...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
