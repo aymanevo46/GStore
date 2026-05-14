@@ -159,14 +159,22 @@ function CheckoutContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // ---------- الحل لمنع الـ Hydration Error ----------
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  // ----------------------------------------------------
+
   const shippingFee = deliveryType === "home_delivery" ? 50 : 0;
   const finalTotal = getTotal() + shippingFee;
 
   useEffect(() => {
-    if (items.length === 0 && !isSuccess) {
+    // التأكد من أن المكون تم تحميله وأن السلة فارغة
+    if (isMounted && items.length === 0 && !isSuccess) {
       router.push(`/?lang=${lang}`);
     }
-  }, [items, router, isSuccess, lang]);
+  }, [items, router, isSuccess, lang, isMounted]);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,11 +272,11 @@ function CheckoutContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 mb-2">{t.fullName}</label>
-                  <input required type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all" placeholder={t.namePlaceholder} />
+                  <input required suppressHydrationWarning type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all" placeholder={t.namePlaceholder} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-400 mb-2">{t.whatsappNumber}</label>
-                  <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all text-start" dir="ltr" placeholder={t.phonePlaceholder} />
+                  <input required suppressHydrationWarning type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all text-start" dir="ltr" placeholder={t.phonePlaceholder} />
                 </div>
               </div>
             </div>
@@ -305,7 +313,7 @@ function CheckoutContent() {
               {deliveryType === "home_delivery" && (
                 <div className="mt-5 relative z-10 animate-in fade-in slide-in-from-top-4 duration-300">
                   <label className="block text-xs font-bold text-gray-400 mb-2">{t.fullAddress}</label>
-                  <textarea required value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all h-28 resize-none" placeholder={t.addressPlaceholder} />
+                  <textarea required suppressHydrationWarning value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#E8FF00] focus:bg-white/5 transition-all h-28 resize-none" placeholder={t.addressPlaceholder} />
                 </div>
               )}
             </div>
@@ -346,15 +354,15 @@ function CheckoutContent() {
                      <p className="text-sm text-purple-300 font-bold m-0">{t.instapayInstruction}</p>
                   </div>
                   <div className="bg-black/50 border border-purple-500/20 rounded-xl p-4 mb-5 text-center">
-                     <p className="text-2xl font-black text-white tracking-[0.2em]">01013216092</p>
+                     <p className="text-2xl font-black text-white tracking-[0.2em]">0 10 13216092</p>
                   </div>
                   <label className="block text-xs font-bold text-gray-400 mb-2">{t.refNumber}</label>
-                  <input required type="text" dir="ltr" value={instapayRef} onChange={(e) => setInstapayRef(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-purple-500 focus:bg-white/5 transition-all text-start" placeholder={t.refPlaceholder} />
+                  <input required suppressHydrationWarning type="text" dir="ltr" value={instapayRef} onChange={(e) => setInstapayRef(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded-xl px-4 py-3.5 text-white outline-none focus:border-purple-500 focus:bg-white/5 transition-all text-start" placeholder={t.refPlaceholder} />
                 </div>
               )}
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full lg:hidden bg-[#E8FF00] hover:bg-white text-black py-4 rounded-2xl font-black text-lg transition-colors shadow-[0_0_20px_rgba(232,255,0,0.2)] disabled:opacity-50 mt-8">
+            <button type="submit" disabled={isLoading || !isMounted} className="w-full lg:hidden bg-[#E8FF00] hover:bg-white text-black py-4 rounded-2xl font-black text-lg transition-colors shadow-[0_0_20px_rgba(232,255,0,0.2)] disabled:opacity-50 mt-8">
               {isLoading ? t.sendingOrder : t.submitOrder}
             </button>
           </form>
@@ -364,7 +372,7 @@ function CheckoutContent() {
             <h2 className="text-xl font-bold mb-6 text-white border-b border-white/5 pb-4">{t.orderSummary}</h2>
             
             <div className="space-y-4 mb-6 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
-              {items.map((item: CartItem) => (
+              {isMounted && items.map((item: CartItem) => (
                 <div key={item.id} className="flex justify-between items-center bg-[#111] p-3 rounded-xl border border-white/5">
                   <div className="flex items-center gap-3 text-gray-300">
                     <span className="w-7 h-7 rounded-lg bg-[#222] flex items-center justify-center font-bold text-xs text-white shrink-0">{item.quantity}</span>
@@ -378,20 +386,20 @@ function CheckoutContent() {
             <div className="bg-[#111] rounded-2xl p-5 border border-white/5 space-y-3">
               <div className="flex justify-between text-gray-400 text-sm font-bold">
                 <span>{t.subtotal}</span>
-                <span className="text-white">{getTotal()} {t.currency}</span>
+                <span className="text-white">{isMounted ? getTotal() : 0} {t.currency}</span>
               </div>
               <div className="flex justify-between text-gray-400 text-sm font-bold">
                 <span>{t.shippingCost}</span>
-                <span className="text-white">{shippingFee === 0 ? t.free : `${shippingFee} ${t.currency}`}</span>
+                <span className="text-white">{!isMounted ? "..." : shippingFee === 0 ? t.free : `${shippingFee} ${t.currency}`}</span>
               </div>
               <div className="w-full h-px bg-white/10 my-2"></div>
               <div className="flex justify-between text-lg font-black text-white pt-2">
                 <span>{t.finalTotal}</span>
-                <span className="text-[#E8FF00]">{finalTotal} {t.currency}</span>
+                <span className="text-[#E8FF00]">{isMounted ? finalTotal : 0} {t.currency}</span>
               </div>
             </div>
 
-            <button onClick={handlePlaceOrder} disabled={isLoading} className="hidden lg:block w-full mt-6 bg-[#E8FF00] hover:bg-white text-black py-4 rounded-xl font-black text-lg transition-all shadow-[0_0_20px_rgba(232,255,0,0.2)] hover:shadow-[0_0_30px_rgba(232,255,0,0.4)] disabled:opacity-50 hover:-translate-y-1">
+            <button onClick={handlePlaceOrder} disabled={isLoading || !isMounted} className="hidden lg:block w-full mt-6 bg-[#E8FF00] hover:bg-white text-black py-4 rounded-xl font-black text-lg transition-all shadow-[0_0_20px_rgba(232,255,0,0.2)] hover:shadow-[0_0_30px_rgba(232,255,0,0.4)] disabled:opacity-50 hover:-translate-y-1">
               {isLoading ? t.sendingOrder : t.submitOrder}
             </button>
             <p className="text-center text-[11px] text-gray-500 mt-4 font-bold">
